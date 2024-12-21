@@ -38,6 +38,9 @@ extractButton1.addEventListener("click", async () => {
                 googleMapDataScrapMain();
             }
         }
+        if (site_name_value == 'Mutual Funds in India') {
+            mutualFundScrapMain()
+        }
     } else {
         alert('select site name');
     }
@@ -52,15 +55,15 @@ const bcRegistryDataScrapMain = async () => {
     const pincodeValue = await fetchApiWithRetry(apiUrl);
     if (pincodeValue.success) {
         const pincode = pincodeValue.data[0].keyWord;
-        let [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+        let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         chrome.scripting.executeScript({
-            target: {tabId: tab.id},
+            target: { tabId: tab.id },
             func: searchBcRegistryData,
             args: [pincode],
         }, async () => {
             await new Promise(resolve => setTimeout(resolve, 5000));
             chrome.scripting.executeScript({
-                target: {tabId: tab.id},
+                target: { tabId: tab.id },
                 func: scrapBcRegistryData,
                 args: [baseUrl],
             }, async () => {
@@ -174,7 +177,7 @@ const scrapBcRegistryData = async (baseUrl) => {
     });
     if (arrayData.length != 0) {
         // console.log(arrayData);
-        chrome.runtime.sendMessage({type: "dataFromContentScript", arrayData, baseUrl});
+        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData, baseUrl });
     }
 
     // const csvContent =
@@ -203,17 +206,17 @@ const scrapBcRegistryData = async (baseUrl) => {
 const proteanTinpanDataScrapMain = async (pincodeArray, index) => {
     let pincode;
     pincode = pincodeArray[index];
-    let [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     chrome.scripting.executeScript({
-        target: {tabId: tab.id},
+        target: { tabId: tab.id },
         func: searchProteanTinpanData,
         args: [pincode],
     }, async () => {
         await new Promise(resolve => setTimeout(resolve, 7000));
         index++;
         chrome.scripting.executeScript({
-            target: {tabId: tab.id},
+            target: { tabId: tab.id },
             func: scrapProteanTinpanData,
             args: [pincode],
         }, async () => {
@@ -284,7 +287,7 @@ const scrapProteanTinpanData = async (pincode) => {
         data.map(row => Object.values(row).join(',')).join('\n');
 
     // Create Blob object
-    const blob = new Blob([csvContent], {type: 'text/csv'});
+    const blob = new Blob([csvContent], { type: 'text/csv' });
 
     // Create download link
     const downloadLink = document.createElement('a');
@@ -300,10 +303,10 @@ const scrapProteanTinpanData = async (pincode) => {
 
 
 const indianInstituteDataScrapMain = async (lastSearchValue = '', StatData = []) => {
-    let [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     chrome.scripting.executeScript({
-        target: {tabId: tab.id},
+        target: { tabId: tab.id },
         func: searchIndianInstituteData,
         args: [lastSearchValue],
     });
@@ -358,15 +361,15 @@ const googleMapDataScrapMain = async () => {
     const pincodeValue = await fetchApiWithRetry(apiUrl);
     if (pincodeValue.success) {
         const pincode = pincodeValue.data[0].keyWord;
-        let [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+        let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         chrome.scripting.executeScript({
-            target: {tabId: tab.id},
+            target: { tabId: tab.id },
             func: googleMapDataData,
             args: [pincode],
         }, async () => {
             await new Promise(resolve => setTimeout(resolve, 3000));
             chrome.scripting.executeScript({
-                target: {tabId: tab.id},
+                target: { tabId: tab.id },
                 func: googleMapDataDataScrollingFunc,
                 args: [pincode, baseUrl],
             }, async () => {
@@ -406,7 +409,7 @@ const fetchApiWithRetry = async (apiUrl) => {
     while (retries < maxRetries) {
         try {
             const response = await fetch(apiUrl, {
-                method: 'POST',
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -531,7 +534,7 @@ const googleMapDataDataScrollingFunc = async (pincode, baseUrl) => {
                     }
                     if (arrayData.length != 0) {
                         // console.log(arrayData);
-                        chrome.runtime.sendMessage({type: "dataFromContentScript", arrayData, baseUrl});
+                        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData, baseUrl });
                     }
                 }
             } else {
@@ -547,10 +550,10 @@ const googleMapDataDataScrollingFunc = async (pincode, baseUrl) => {
 
 
 const whatsappMain = async () => {
-    let [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     chrome.scripting.executeScript({
-        target: {tabId: tab.id},
+        target: { tabId: tab.id },
         func: whatsappInfoGet,
     });
 }
@@ -558,4 +561,93 @@ const whatsappMain = async () => {
 const whatsappInfoGet = () => {
     var containers = document.querySelectorAll("[role='listitem']");
     console.log(containers);
+}
+
+//
+
+const mutualFundScrapMain = async () => {
+    const baseUrl = "http://3.108.36.170:8080/data-scrap/get-key/Mutual Funds in India";
+    const response = await fetchApiWithRetry(baseUrl);
+    if (response.success) {
+        const pincode = response?.key_word;
+        let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+        chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: mutualFundAction,
+            args: [pincode],
+        }, async () => {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: mutualFundScrapData,
+                args: [pincode, "http://3.108.36.170:8080/data-scrap/import-data"],
+            }, async () => {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                mutualFundScrapMain();
+            })
+        });
+    }
+}
+
+const mutualFundAction = async (pincode) => {
+    const pincodeSelectBox = document.querySelector('#NearestFinAdvisorsPin');
+    const submitBtn = document.querySelector('#hrfGo');
+    pincodeSelectBox.value = pincode;
+    await new Promise(resolve => setTimeout(resolve, 300));
+    submitBtn.click();
+    await new Promise(resolve => setTimeout(resolve, 700));
+}
+
+const mutualFundScrapData = async (pincode, baseUrl) => {
+    const check_text_includes = (text, word) => {
+        if (text.toLowerCase().includes(word.toLowerCase())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    const divExcel = document.getElementById('divExcel');
+    const table = divExcel.querySelector('table');
+    const tbody = table.querySelector('tbody');
+    const result = [];
+    if (tbody) {
+        const headerRow = tbody.querySelector('tr');
+        const headers = Array.from(headerRow.querySelectorAll('th')).map((th) => th.textContent.trim());
+
+        const dataRows = tbody.querySelectorAll('tr:not(:first-child)');
+
+        dataRows.forEach((row) => {
+            const values = Array.from(row.querySelectorAll('td')).map((td) => td.textContent.trim());
+            const rowObject = {};
+            const dbObject = {};
+            let mobile = "";
+            headers.forEach((header, index) => {
+                rowObject[header] = values[index] || '';
+
+                if (check_text_includes(header, "name")) {
+                    dbObject['name'] = values[index] || '';
+                }
+                if (check_text_includes(header, "Telephone")) {
+                    if (mobile == "") {
+                        mobile = values[index] || '';
+                        dbObject['mobile'] = values[index] || '';
+                    }
+                }
+                if (check_text_includes(header, "Email")) {
+                    dbObject['email'] = values[index] || '';
+                }
+                if (check_text_includes(header, "Pin")) {
+                    dbObject['location'] = values[index] || '';
+                }
+            });
+
+            result.push({ "db": dbObject, "response": rowObject });
+        });
+
+        if (result.length != 0) {
+            // console.log(result);
+            chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData: { "key_word": pincode, "site_name": "Mutual Funds in India", "data": result }, baseUrl });
+        }
+    }
 }

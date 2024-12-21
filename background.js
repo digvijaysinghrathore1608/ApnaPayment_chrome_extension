@@ -4,7 +4,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const baseUrl = message.baseUrl;
         // console.log("Data received from content script:", arrayData);
         if (arrayData && arrayData.length !== 0) {
-            const apiUrl = `${baseUrl}/api/sites-data-scrap-add`;
+            const apiUrl = baseUrl;
             const requestData = JSON.stringify({ arrayData });
 
             const fetchApiWithRetry = async () => {
