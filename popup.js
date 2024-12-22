@@ -49,12 +49,11 @@ extractButton1.addEventListener("click", async () => {
 // if site name bc registry start
 
 const bcRegistryDataScrapMain = async () => {
-
-    const baseUrl = 'http://93.127.185.13:8000';
-    const apiUrl = `${baseUrl}/api/sites-data-scrap-key-word-get`;
-    const pincodeValue = await fetchApiWithRetry(apiUrl);
-    if (pincodeValue.success) {
-        const pincode = pincodeValue.data[0].keyWord;
+    const base_url= "http://3.108.36.170:8080"
+    const baseUrl = base_url+"/data-scrap/get-key/BC Registry";
+    const response = await fetchApiWithRetry(baseUrl);
+    if (response.success) {
+        const pincode = response?.key_word;
         let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
@@ -65,7 +64,7 @@ const bcRegistryDataScrapMain = async () => {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: scrapBcRegistryData,
-                args: [baseUrl],
+                args: [pincode, base_url+"/data-scrap/import-data"],
             }, async () => {
                 bcRegistryDataScrapMain();
             });
@@ -141,62 +140,44 @@ const searchBcRegistryData = async (pincode) => {
     // console.log('body' + tableBody);
 }
 
-const scrapBcRegistryData = async (baseUrl) => {
+const scrapBcRegistryData = async (pincode,baseUrl) => {
     const tbody = document.querySelector('tbody');
-    const arrayData = [];
+    const result = [];
     tbody.querySelectorAll('tr').forEach(row => {
         const rowData = {};
-        const currentDate = new Date();
-        const createdAt = currentDate.toISOString();
-
+        const dbObject = {};
         row.querySelectorAll('td').forEach((cell, index) => {
+            dbObject['email'] = "";
+            
             switch (index) {
                 // case 0:
                 //     rowData['id'] = cell.textContent.trim();
                 //     break;
-                // case 1:
-                //     rowData['name_1'] = cell.textContent.trim().replace('+ ', '');
-                //     break;
+                case 1:
+                    rowData['name'] = cell.textContent.trim().replace('+ ', '');
+                    dbObject['name'] = cell.textContent.trim().replace('+ ', '');
+                    break;
                 case 2:
-                    rowData['phoneNumber'] = cell.textContent.trim();
+                    rowData['mobile'] = cell.textContent.trim();
+                    dbObject['mobile'] = cell.textContent.trim();
                     break;
                 case 3:
-                    rowData['keyWord'] = cell.textContent.trim();
+                    rowData['location'] = cell.textContent.trim();
+                    dbObject['location'] = cell.textContent.trim();
                     break;
                 case 4:
-                    rowData['name'] = cell.textContent.trim();
+                    rowData['bank'] = cell.textContent.trim();
                     break;
                 default:
                     break;
             }
         });
-        rowData['siteName'] = 'BC Registry';
-        rowData['createAt'] = createdAt;
-        rowData['updateAt'] = createdAt;
-        arrayData.push(rowData);
+        result.push({ "db": dbObject, "response": rowData });
     });
-    if (arrayData.length != 0) {
-        // console.log(arrayData);
-        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData, baseUrl });
+    if (result.length != 0) {
+        // console.log(result);
+        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData:{ "key_word": pincode, "site_name": "BC Registry", "data": result }, baseUrl });
     }
-
-    // const csvContent =
-    //     Object.keys(data[0]).join(',') + '\n' +
-    //     data.map(row => Object.values(row).join(',')).join('\n');
-
-    // // Create Blob object
-    // const blob = new Blob([csvContent], { type: 'text/csv' });
-
-    // // Create download link
-    // const downloadLink = document.createElement('a');
-    // downloadLink.href = URL.createObjectURL(blob);
-    // const fileName = 'bc_registry_data_' + pincode;
-    // downloadLink.download = fileName + '.csv';
-
-    // // Trigger click event to download
-    // downloadLink.click();
-
-    // await new Promise(resolve => setTimeout(resolve, 5000));
 }
 
 // if site name bc registry end
@@ -566,7 +547,8 @@ const whatsappInfoGet = () => {
 //
 
 const mutualFundScrapMain = async () => {
-    const baseUrl = "http://3.108.36.170:8080/data-scrap/get-key/Mutual Funds in India";
+    const base_url= "http://3.108.36.170:8080"
+    const baseUrl = base_url+"/data-scrap/get-key/Mutual Funds in India";
     const response = await fetchApiWithRetry(baseUrl);
     if (response.success) {
         const pincode = response?.key_word;
@@ -581,7 +563,7 @@ const mutualFundScrapMain = async () => {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: mutualFundScrapData,
-                args: [pincode, "http://3.108.36.170:8080/data-scrap/import-data"],
+                args: [pincode, base_url+"/data-scrap/import-data"],
             }, async () => {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 mutualFundScrapMain();
