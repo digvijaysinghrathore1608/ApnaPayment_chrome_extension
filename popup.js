@@ -263,11 +263,11 @@ const scrapProteanTinpanData = async (pincode, baseUrl) => {
 
     if (result.length > 0) {
         chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData: { "key_word": pincode, "site_name": "Protean Tinpan", "data": result }, baseUrl });
-        if (result.length > 3) {
-            await new Promise(resolve => setTimeout(resolve, 120000));
-        } else {
-            await new Promise(resolve => setTimeout(resolve, 12000));
-        }
+        // if (result.length > 3) {
+        //     await new Promise(resolve => setTimeout(resolve, 120000));
+        // } else {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        // }
     }
 }
 
