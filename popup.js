@@ -19,10 +19,7 @@ extractButton1.addEventListener("click", async () => {
         }
 
         if (site_name_value == 'Protean Tinpan') {
-            if (pincodeNumber !== '') {
-                const myArray = pincodeNumber.value.split(", ");
-                proteanTinpanDataScrapMain(myArray, 0)
-            }
+            proteanTinpanDataScrapMain()
         }
 
         if (site_name_value == 'Indian Institute') {
@@ -49,8 +46,9 @@ extractButton1.addEventListener("click", async () => {
 // if site name bc registry start
 
 const bcRegistryDataScrapMain = async () => {
-    const base_url= "http://3.108.36.170:8080"
-    const baseUrl = base_url+"/data-scrap/get-key/BC Registry";
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    const base_url = "https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com"
+    const baseUrl = base_url + "/get-key/BC Registry";
     const response = await fetchApiWithRetry(baseUrl);
     if (response.success) {
         const pincode = response?.key_word;
@@ -64,7 +62,7 @@ const bcRegistryDataScrapMain = async () => {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: scrapBcRegistryData,
-                args: [pincode, base_url+"/data-scrap/import-data"],
+                args: [pincode, base_url + "/import-data"],
             }, async () => {
                 bcRegistryDataScrapMain();
             });
@@ -140,7 +138,7 @@ const searchBcRegistryData = async (pincode) => {
     // console.log('body' + tableBody);
 }
 
-const scrapBcRegistryData = async (pincode,baseUrl) => {
+const scrapBcRegistryData = async (pincode, baseUrl) => {
     const tbody = document.querySelector('tbody');
     const result = [];
     tbody.querySelectorAll('tr').forEach(row => {
@@ -148,7 +146,7 @@ const scrapBcRegistryData = async (pincode,baseUrl) => {
         const dbObject = {};
         row.querySelectorAll('td').forEach((cell, index) => {
             dbObject['email'] = "";
-            
+
             switch (index) {
                 // case 0:
                 //     rowData['id'] = cell.textContent.trim();
@@ -176,7 +174,7 @@ const scrapBcRegistryData = async (pincode,baseUrl) => {
     });
     if (result.length != 0) {
         // console.log(result);
-        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData:{ "key_word": pincode, "site_name": "BC Registry", "data": result }, baseUrl });
+        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData: { "key_word": pincode, "site_name": "BC Registry", "data": result }, baseUrl });
     }
 }
 
@@ -184,102 +182,93 @@ const scrapBcRegistryData = async (pincode,baseUrl) => {
 
 // if site name protean Tinpan start
 
-const proteanTinpanDataScrapMain = async (pincodeArray, index) => {
-    let pincode;
-    pincode = pincodeArray[index];
-    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+const proteanTinpanDataScrapMain = async () => {
+    const base_url = "https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com";
+    const baseUrl = base_url + "/get-key/Protean Tinpan";
+    const response = await fetchApiWithRetry(baseUrl);
+    if (response.success) {
+        const pincode = response?.key_word;
+        let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: searchProteanTinpanData,
-        args: [pincode],
-    }, async () => {
-        await new Promise(resolve => setTimeout(resolve, 7000));
-        index++;
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            func: scrapProteanTinpanData,
+            func: searchProteanTinpanData,
             args: [pincode],
-        }, async () => {
-            proteanTinpanDataScrapMain(pincodeArray, index);
-        });
-    });
+        },
+            async () => {
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    func: scrapProteanTinpanData,
+                    args: [pincode, base_url + "/import-data"],
+                }, async () => {
+                    proteanTinpanDataScrapMain();
+                });
+            }
+        );
+    }
 }
 
 const searchProteanTinpanData = async (pincode) => {
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const statepincode = document.querySelector('#pincode');
+    const form = document.querySelectorAll('form')[1];
+
+    const statepincode = form.querySelector('input');
+    const pin_btn = form.querySelector('button');
+
     if (statepincode) {
         statepincode.value = pincode;
+        statepincode.dispatchEvent(new Event('input', { bubbles: true }));
     } else {
-        console.log("Element with name 'pincode' not found.");
+        console.log("Input element not found.");
     }
 
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const pin_btn = document.querySelector('#pin_btn');
     if (pin_btn) {
         pin_btn.click();
     } else {
-        console.log("Element with name 'pincode' not found.");
+        console.log("Button element not found.");
     }
 
     await new Promise(resolve => setTimeout(resolve, 300));
 }
-const scrapProteanTinpanData = async (pincode) => {
+const scrapProteanTinpanData = async (pincode, baseUrl) => {
     // console.log(pincode);
-    const location_data2 = document.querySelector('#location_data2')
-    const tbody = location_data2.querySelector('tbody');
-    const phoneNumberRegex = /(\d{10})/;
-    const data = [];
-    tbody.querySelectorAll('tr').forEach(row => {
-        const rowData = {};
+    const table = document.querySelector('table');
+    const tbody = table.querySelector('tbody');
 
+    const result = [];
+    tbody.querySelectorAll('tr').forEach(row => {
+        const dbObject = {};
         row.querySelectorAll('td').forEach((cell, index) => {
             switch (index) {
-                case 0:
-                    rowData['TIN FC Code'] = cell.textContent.trim();
-                    break;
-                case 1:
-                    rowData['Facilitator'] = cell.textContent.trim();
-                    break;
                 case 2:
-                    rowData['Contact Person'] = cell.textContent.trim();
+                    dbObject['location'] = cell.textContent.trim();
                     break;
-                case 3:
-                    let ContactAdd = cell.textContent.trim();
-                    const stringWithoutCommas = ContactAdd.replace(/,/g, '');
-                    rowData['Contact Address'] = stringWithoutCommas;
-                    const phoneNumberMatch = ContactAdd.match(phoneNumberRegex);
-                    rowData['phoneNumber'] = phoneNumberMatch ? phoneNumberMatch[1] : "";
+                case 5:
+                    dbObject['name'] = cell.textContent.trim();
                     break;
-                case 4:
-                    rowData['Email Address'] = cell.textContent.trim();
+                case 7:
+                    dbObject['mobile'] = cell.textContent.trim();
+                    break;
+                case 8:
+                    dbObject['email'] = cell.textContent.trim();
                     break;
                 default:
                     break;
             }
         });
-        data.push(rowData);
+        result.push({ "db": dbObject, "response": [] });
     });
-    const csvContent =
-        Object.keys(data[0]).join(',') + '\n' +
-        data.map(row => Object.values(row).join(',')).join('\n');
 
-    // Create Blob object
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-
-    // Create download link
-    const downloadLink = document.createElement('a');
-    downloadLink.href = URL.createObjectURL(blob);
-    const fileName = 'protean-tinpan' + pincode;
-    downloadLink.download = fileName + '.csv';
-
-    // Trigger click event to download
-    downloadLink.click();
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (result.length > 0) {
+        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData: { "key_word": pincode, "site_name": "Protean Tinpan", "data": result }, baseUrl });
+        if (result.length > 3) {
+            await new Promise(resolve => setTimeout(resolve, 120000));
+        } else {
+            await new Promise(resolve => setTimeout(resolve, 12000));
+        }
+    }
 }
 
 
@@ -337,11 +326,11 @@ const searchIndianInstituteData = async (lastSearchValue) => {
 
 const googleMapDataScrapMain = async () => {
     // let baseUrl = await fetchNodeServerUrl();
-    baseUrl = 'http://93.127.185.13:8000';
-    const apiUrl = `${baseUrl}/api/sites-data-scrap-key-word-get`;
-    const pincodeValue = await fetchApiWithRetry(apiUrl);
-    if (pincodeValue.success) {
-        const pincode = pincodeValue.data[0].keyWord;
+    const base_url = "https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com";
+    const baseUrl = base_url + "/get-key/Google Map";
+    const response = await fetchApiWithRetry(baseUrl);
+    if (response.success) {
+        const pincode = response?.key_word;
         let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         chrome.scripting.executeScript({
             target: { tabId: tab.id },
@@ -352,9 +341,9 @@ const googleMapDataScrapMain = async () => {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: googleMapDataDataScrollingFunc,
-                args: [pincode, baseUrl],
+                args: [pincode, base_url + "/import-data"],
             }, async () => {
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 180000));
                 googleMapDataScrapMain();
             })
         });
@@ -391,6 +380,7 @@ const fetchApiWithRetry = async (apiUrl) => {
         try {
             const response = await fetch(apiUrl, {
                 method: 'GET',
+                mode: 'cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -433,7 +423,7 @@ const googleMapDataData = async (pincode) => {
 
 const googleMapDataDataScrollingFunc = async (pincode, baseUrl) => {
     // console.log('hello world do');
-
+    const location = pincode
     var container = document.querySelector("[role='main'] > div > div");
 
     var lastPosition = container.scrollTop;
@@ -497,25 +487,21 @@ const googleMapDataDataScrollingFunc = async (pincode, baseUrl) => {
                             const cleanedPhoneNumber = phoneNumber.replace(/\s+/g, '');
                             const first50Characters = str.substring(0, 10);
                             const siteName = 'Google Map';
-                            const keyWord = pincode;
-                            const currentDate = new Date();
-                            const createdAt = currentDate.toISOString();
                             const data = {
-                                phoneNumber: cleanedPhoneNumber,
+                                mobile: cleanedPhoneNumber,
                                 name: first50Characters,
-                                siteName: siteName,
-                                keyWord: keyWord,
-                                createAt: createdAt,
-                                updateAt: createdAt,
+                                location: location,
+                                email: "",
                             }
-                            arrayData.push(data);
+                            arrayData.push({ "db": data, "response": [] });
                         } else {
                             continue;
                         }
                     }
+
                     if (arrayData.length != 0) {
                         // console.log(arrayData);
-                        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData, baseUrl });
+                        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData: { "key_word": location, "site_name": "Google Map", "data": arrayData }, baseUrl });
                     }
                 }
             } else {
@@ -547,8 +533,8 @@ const whatsappInfoGet = () => {
 //
 
 const mutualFundScrapMain = async () => {
-    const base_url= "http://3.108.36.170:8080"
-    const baseUrl = base_url+"/data-scrap/get-key/Mutual Funds in India";
+    const base_url = "http://3.108.36.170:8080"
+    const baseUrl = base_url + "/get-key/Mutual Funds in India";
     const response = await fetchApiWithRetry(baseUrl);
     if (response.success) {
         const pincode = response?.key_word;
@@ -563,7 +549,7 @@ const mutualFundScrapMain = async () => {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: mutualFundScrapData,
-                args: [pincode, base_url+"/data-scrap/import-data"],
+                args: [pincode, base_url + "/import-data"],
             }, async () => {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 mutualFundScrapMain();

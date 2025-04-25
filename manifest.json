@@ -1,23 +1,33 @@
 {
-    "manifest_version": 3,
-    "name": "BC Registry",
-    "version": "1.0",
-    "description": "A simple Chrome extension",
-    "background": {
-      "service_worker": "background.js"
-    },
-    "permissions": ["activeTab", "scripting"],
-    "action": {
-      "default_popup": "popup.html",
-      "default_icon": {
-        "16": "image/logo16.png",
-        "48": "image/logo48.png",
-        "128": "image/logo128.png"
-      }
-    },
-    "icons": {
+  "manifest_version": 3,
+  "name": "BC Registry",
+  "version": "1.0",
+  "description": "A simple Chrome extension",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com/*"
+  ],
+  "host_permissions": [
+    "https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
       "16": "image/logo16.png",
       "48": "image/logo48.png",
       "128": "image/logo128.png"
     }
+  },
+  "icons": {
+    "16": "image/logo16.png",
+    "48": "image/logo48.png",
+    "128": "image/logo128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com"
   }
+}
