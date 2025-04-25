@@ -170,7 +170,7 @@ const scrapBcRegistryData = async (pincode, baseUrl) => {
                     break;
             }
         });
-        result.push({ "db": dbObject, "response": rowData });
+        result.push({ "db": dbObject, "response": [] });
     });
     if (result.length != 0) {
         // console.log(result);
@@ -610,7 +610,7 @@ const mutualFundScrapData = async (pincode, baseUrl) => {
                 }
             });
 
-            result.push({ "db": dbObject, "response": rowObject });
+            result.push({ "db": dbObject, "response": [] });
         });
 
         if (result.length != 0) {
