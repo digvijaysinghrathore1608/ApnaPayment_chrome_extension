@@ -343,7 +343,7 @@ const googleMapDataScrapMain = async () => {
                 func: googleMapDataDataScrollingFunc,
                 args: [pincode, base_url + "/import-data"],
             }, async () => {
-                await new Promise(resolve => setTimeout(resolve, 180000));
+                await new Promise(resolve => setTimeout(resolve, 10000));
                 googleMapDataScrapMain();
             })
         });
