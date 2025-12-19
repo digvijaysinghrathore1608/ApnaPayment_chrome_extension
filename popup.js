@@ -413,7 +413,7 @@ const fetchApiWithRetry = async (apiUrl) => {
 
 const googleMapDataData = async (pincode) => {
     const searchboxinput = document.querySelector('#searchboxinput');
-    const searchboxsearchbutton = document.querySelector('#searchbox-searchbutton');
+    const searchboxsearchbutton = document.querySelector('button[aria-label="Search"]');
     searchboxinput.value = pincode;
     await new Promise(resolve => setTimeout(resolve, 300));
     searchboxsearchbutton.click();
