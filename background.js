@@ -1,51 +1,87 @@
+importScripts("xlsx.full.min.js");
+
+const convertToExcelBlob = (jsonData) => {
+    const worksheet = XLSX.utils.json_to_sheet(jsonData);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+
+    const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array"
+    });
+
+    return new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+};
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+
+    if (message.type === "GET_STATE") {
+        chrome.storage.local.get("bcState", (res) => {
+            sendResponse(res.bcState);
+        });
+        return true; // async response
+    }
+
+    if (message.type === "SET_STATE") {
+        chrome.storage.local.set({ bcState: message.data }, () => {
+            sendResponse(true);
+        });
+        return true;
+    }
+
     if (message.type === "dataFromContentScript") {
-        const arrayData = message.arrayData;
-        const baseUrl = message.baseUrl;
-        // console.log("Data received from content script:", arrayData);
-        if (arrayData && arrayData.length !== 0) {
-            const apiUrl = baseUrl;
-            const requestData = JSON.stringify({ arrayData });
+        const payload = message.arrayData;
+        const apiUrl = "https://2a5mhhh38j.execute-api.ap-south-1.amazonaws.com/api/lead-container-bulk";
 
-            const fetchApiWithRetry = async () => {
-                const maxRetries = 5;
-                let retries = 0;
-                while (retries < maxRetries) {
-                    try {
-                        const response = await fetch(apiUrl, {
-                            method: 'POST',
-                            mode: 'cors',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: requestData,
-                        });
+        if (!payload || !payload.data || payload.data.length === 0) {
+            console.log("No data received");
+            return;
+        }
 
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
+        const excelBlob = convertToExcelBlob(payload.data);
+
+        const fetchApiWithRetry = async () => {
+            let retries = 0;
+            const maxRetries = 5;
+
+            while (retries < maxRetries) {
+                try {
+
+                    // ⚠️ हर retry में नया formData बनाओ
+                    const formData = new FormData();
+                    formData.append("file", excelBlob, `bc_data_${Date.now()}.xlsx`);
+                    formData.append("source_id", payload.source_id);
+
+                    const response = await fetch(apiUrl, {
+                        method: "POST",
+                        body: formData,
+                        headers: {
+                            "X-Category-Name": "kotak 811"
                         }
+                    });
 
-                        const data = await response.json();
-                        // console.log('Request successful:', data);
-                        // Handle the response data here
-                        return;
-                    } catch (error) {
-                        console.error('Request failed:', error);
-                        retries++;
-                        // Retry the API call after a delay
-                        if (retries < maxRetries) {
-                            await new Promise(resolve => setTimeout(resolve, 2000));
-                            console.log(`Retrying API call, attempt ${retries + 1} of ${maxRetries}...`);
-                        } else {
-                            console.error('Max retries reached, giving up.');
-                        }
+                    if (!response.ok) throw new Error("Upload failed");
+
+                    const data = await response.json();
+                    console.log("✅ Upload success:", data);
+                    return;
+
+                } catch (error) {
+                    retries++;
+                    console.error("❌ Upload failed:", error);
+
+                    if (retries < maxRetries) {
+                        console.log(`Retry ${retries}/${maxRetries}`);
+                        await new Promise(r => setTimeout(r, 2000));
+                    } else {
+                        console.error("❌ Max retries reached");
                     }
                 }
-            };
-
-            fetchApiWithRetry();
-        } else {
-            console.log('arrayData is empty or undefined.');
-        }
+            }
+        };
+        fetchApiWithRetry();
     }
 });

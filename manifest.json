@@ -9,10 +9,10 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com/*"
+    "storage"
   ],
   "host_permissions": [
-    "https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com/*"
+    "https://2a5mhhh38j.execute-api.ap-south-1.amazonaws.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -28,6 +28,16 @@
     "128": "image/logo128.png"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://ql1b85gun1.execute-api.ap-south-1.amazonaws.com"
-  }
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://2a5mhhh38j.execute-api.ap-south-1.amazonaws.com"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "xlsx.full.min.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

@@ -14,7 +14,8 @@ extractButton1.addEventListener("click", async () => {
         if (site_name_value == 'BC Registry') {
             if (pincodeNumber !== '') {
                 const myArray = pincodeNumber.value.split(", ");
-                bcRegistryDataScrapMain(myArray, 0);
+                // bcRegistryDataScrapMain(myArray, 0);
+                bcRegistryDataScrapMain2();
             }
         }
 
@@ -44,6 +45,141 @@ extractButton1.addEventListener("click", async () => {
 });
 
 // if site name bc registry start
+const bcRegistryDataScrapMain2 = async () => {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    const res = await chrome.storage.local.get("bcState");
+    if (!res.bcState) {
+        console.log("Initializing state...");
+        await chrome.storage.local.set({
+            bcState: { stateIdx: 1, distIdx: 1 }
+        });
+    } else {
+        console.log("Resuming from:", res.bcState);
+    }
+
+    chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: searchBcRegistryData2,
+    }, async () => {
+        await new Promise(resolve => setTimeout(resolve, 20000));
+        chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: scrapBcRegistryData,
+        }, async () => {
+            bcRegistryDataScrapMain2();
+        });
+    });
+}
+
+const searchBcRegistryData2 = async () => {
+
+    const getState = () => new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "GET_STATE" }, resolve);
+    });
+
+    const setState = (data) => new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "SET_STATE", data }, resolve);
+    });
+
+    let state = await getState();
+
+    if (!state) {
+        state = { stateIdx: 1, distIdx: 1 };
+        await setState(state);
+    }
+    let { stateIdx, distIdx } = state;
+
+    // alert(stateIdx + " " + distIdx);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+
+    const stateSelect = document.querySelector("#stateId");
+    if (stateSelect.selectedIndex != stateIdx) {
+
+        stateSelect.selectedIndex = stateIdx;
+
+        // Website ka native function trigger karna zaroori hai
+        stateSelect.dispatchEvent(new Event('change'));
+        await new Promise(resolve => setTimeout(resolve, 2500));
+    }
+
+    const distSelect = document.querySelector("#districtId");
+    if (distIdx < distSelect.options.length) {
+        distSelect.selectedIndex = distIdx;
+        distSelect.dispatchEvent(new Event('change'));
+        await new Promise(resolve => setTimeout(resolve, 500));
+    } else {
+        await setState({
+            stateIdx: stateIdx + 1,
+            distIdx: 1
+        });
+
+        await searchBcRegistryData2();
+        return;
+    }
+    await setState({
+        stateIdx,
+        distIdx: distIdx + 1
+    });
+
+    const btnExtractButtonBC = document.createElement('button');
+    btnExtractButtonBC.id = 'extractButtonBC';
+    btnExtractButtonBC.textContent = 'Start Now';
+    btnExtractButtonBC.setAttribute('onclick', 'getListByState();');
+    document.body.appendChild(btnExtractButtonBC);
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const goSearchBtn = document.querySelector('#extractButtonBC');
+    if (goSearchBtn) {
+        goSearchBtn.click();
+        await new Promise(resolve => setTimeout(resolve, 500));
+        goSearchBtn.remove();
+        await new Promise(resolve => setTimeout(resolve, 500));
+    } else {
+        alert('Button not found or insufficient buttons.');
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const txtCaptcha_search = document.querySelector('#txtCaptcha_search');
+    if (txtCaptcha_search) {
+        const cap_search = document.querySelector('#cap_search');
+        if (cap_search) {
+            cap_search.value = txtCaptcha_search.value;
+
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            const btnCaptchaVerify = document.createElement('button');
+            btnCaptchaVerify.id = 'CaptchaVerify';
+            btnCaptchaVerify.textContent = 'Verify';
+            btnCaptchaVerify.setAttribute('onclick', 'proceedmodal();');
+            document.body.appendChild(btnCaptchaVerify);
+
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            const captchaVerifySearchBtn = document.querySelector('#CaptchaVerify');
+            if (captchaVerifySearchBtn) {
+                captchaVerifySearchBtn.click();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                captchaVerifySearchBtn.remove();
+            } else {
+                alert('Button not found or captchaVerifySearchBtn buttons.');
+            }
+
+        } else {
+            alert('Button not found or cap_search.');
+        }
+    } else {
+        alert('Button not found or txtCaptcha_search.');
+    }
+
+}
+
+function saveConfig(config) {
+    localStorage.setItem('scraper_config', JSON.stringify(config));
+}
 
 const bcRegistryDataScrapMain = async () => {
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -138,14 +274,12 @@ const searchBcRegistryData = async (pincode) => {
     // console.log('body' + tableBody);
 }
 
-const scrapBcRegistryData = async (pincode, baseUrl) => {
+const scrapBcRegistryData = async () => {
     const tbody = document.querySelector('tbody');
     const result = [];
     tbody.querySelectorAll('tr').forEach(row => {
         const rowData = {};
-        const dbObject = {};
         row.querySelectorAll('td').forEach((cell, index) => {
-            dbObject['email'] = "";
 
             switch (index) {
                 // case 0:
@@ -153,15 +287,12 @@ const scrapBcRegistryData = async (pincode, baseUrl) => {
                 //     break;
                 case 1:
                     rowData['name'] = cell.textContent.trim().replace('+ ', '');
-                    dbObject['name'] = cell.textContent.trim().replace('+ ', '');
                     break;
                 case 2:
                     rowData['mobile'] = cell.textContent.trim();
-                    dbObject['mobile'] = cell.textContent.trim();
                     break;
                 case 3:
-                    rowData['location'] = cell.textContent.trim();
-                    dbObject['location'] = cell.textContent.trim();
+                    rowData['pincode'] = cell.textContent.trim();
                     break;
                 case 4:
                     rowData['bank'] = cell.textContent.trim();
@@ -170,11 +301,10 @@ const scrapBcRegistryData = async (pincode, baseUrl) => {
                     break;
             }
         });
-        result.push({ "db": dbObject, "response": [] });
+        result.push(rowData);
     });
     if (result.length != 0) {
-        // console.log(result);
-        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData: { "key_word": pincode, "site_name": "BC Registry", "data": result }, baseUrl });
+        chrome.runtime.sendMessage({ type: "dataFromContentScript", arrayData: { "source_id": 1, "data": result } });
     }
 }
 
