@@ -68,7 +68,7 @@ const bcRegistryDataScrapMain2 = async () => {
             target: { tabId: tab.id },
             func: scrapBcRegistryData,
         }, async () => {
-            await new Promise(resolve => setTimeout(resolve, 20000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
             bcRegistryDataScrapMain2();
         });
     });
